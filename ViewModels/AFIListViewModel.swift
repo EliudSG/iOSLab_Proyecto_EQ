@@ -1,6 +1,8 @@
 import Foundation
 import Supabase
-
+#if canImport(Combine)
+import Combine
+#endif
 @MainActor
 class AFIListViewModel: ObservableObject {
     // Arrays que mantienen el estado de los datos bajados de la BD
@@ -13,6 +15,8 @@ class AFIListViewModel: ObservableObject {
     
     // Filtro para los Tabs por Categoría en la interfaz AFI
     @Published var categoriaActiva: CategoriaAFI? = nil
+    
+    init() {}
     
     // MARK: - API de Cartelera General (Lectura Pública)
     

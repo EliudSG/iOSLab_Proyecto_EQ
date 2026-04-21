@@ -1,56 +1,110 @@
 import SwiftUI
 
+#if canImport(SwiftUI)
 struct HomeView: View {
-    @StateObject private var viewModel = AFIListViewModel()
+    @StateObject private var eventViewModel = AFIListViewModel()
+    @StateObject private var calendarioVM = CalendarioViewModel()
     @EnvironmentObject var authService: AuthService
+    
+    // Columnas base para la Matrix del Grid de SwiftUI
+    let columnas = Array(repeating: GridItem(.flexible()), count: 7)
+    let weekdays = ["D", "L", "M", "M", "J", "V", "S"]
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Header tipo calendario moderno iOS
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(currentMonthYear())
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .padding(.horizontal)
+                // Header Calendario Real Integrado
+                VStack(spacing: 15) {
+                    HStack {
+                        Button(action: {
+                            calendarioVM.changeMonth(by: -1)
+                        }) {
+                            Image(systemName: "chevron.left")
+                                .font(.title2)
+                        }
+                        
+                        Spacer()
+                        Text(calendarioVM.getMonthYearString())
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Spacer()
+                        
+                        Button(action: {
+                            calendarioVM.changeMonth(by: 1)
+                        }) {
+                            Image(systemName: "chevron.right")
+                                .font(.title2)
+                        }
+                    }
+                    .padding(.horizontal)
                     
-                    // Carrusel horizontal fake de selección de días
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 15) {
-                            ForEach(-3...3, id: \.self) { offset in
-                                let date = Calendar.current.date(byAdding: .day, value: offset, to: Date())!
-                                DayBubble(date: date, isSelected: offset == 0)
+                    // Nombres de los Días de la semana
+                    HStack(spacing: 0) {
+                        ForEach(weekdays, id: \.self) { day in
+                            Text(day)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    
+                    // Fechas extraídas del motor del CalendarioViewModel
+                    LazyVGrid(columns: columnas, spacing: 15) {
+                        ForEach(calendarioVM.extractDates()) { valorFecha in
+                            if valorFecha.day != -1 {
+                                // Es un Día real
+                                let isSelected = Calendar.current.isDate(valorFecha.date, inSameDayAs: calendarioVM.selectedDate)
+                                
+                                VStack {
+                                    Text("\(valorFecha.day)")
+                                        .font(.title3)
+                                        .fontWeight(isSelected ? .bold : .regular)
+                                        .foregroundColor(isSelected ? .white : .primary)
+                                }
+                                .frame(width: 40, height: 40)
+                                .background(isSelected ? Color.miCuPrimary : Color.clear)
+                                .clipShape(Circle())
+                                .onTapGesture {
+                                    calendarioVM.selectDate(valorFecha.date)
+                                }
+                            } else {
+                                // Espacios en Blanco para alinear los días
+                                Text("")
                             }
                         }
-                        .padding(.horizontal)
                     }
-                    .padding(.bottom, 10)
+                    .padding(.horizontal)
                 }
-                .padding(.top, 10)
-                .background(Color(UIColor.systemGroupedBackground))
+                .padding(.vertical, 10)
+                .background(Color(UIColor.systemGroupedBackground)) // Fondo del Calendario
                 
                 Divider()
                 
-                // Listado de eventos del día
-                if viewModel.isLoading {
+                // Listado de eventos ENLAZADOS Al Día Seleccionado
+                let eventosFiltrados = calendarioVM.eventosParaElDia(todosLosEventos: eventViewModel.todosLosEventos, date: calendarioVM.selectedDate)
+                
+                if eventViewModel.isLoading {
                     Spacer()
-                    ProgressView("Bajando novedades de Supabase...")
+                    ProgressView("Buscando agenda de UANL...")
                     Spacer()
-                } else if viewModel.todosLosEventos.isEmpty {
+                } else if eventosFiltrados.isEmpty {
                     Spacer()
                     VStack {
-                        Image(systemName: "magnifyingglass")
+                        Image(systemName: "calendar.badge.clock")
                             .font(.largeTitle)
                             .foregroundColor(.gray)
-                        Text("Día libre. No hay AFIs agendadas hoy.")
+                        Text("Sin AFIs programadas.")
                             .foregroundColor(.gray)
                             .padding()
                     }
                     Spacer()
                 } else {
                     List {
-                        ForEach(viewModel.todosLosEventos) { evento in
-                            EventoRowCard(evento: evento)
+                        ForEach(eventosFiltrados) { evento in
+                            // IMPORTANTE: Navegamos a la ficha de la vista Detalle interactiva
+                            NavigationLink(destination: EventoDetalleView(evento: evento)) {
+                                EventoRowCard(evento: evento)
+                            }
                         }
                     }
                     .listStyle(PlainListStyle())
@@ -58,69 +112,25 @@ struct HomeView: View {
             }
             .navigationTitle("Mi Calendario")
             .navigationBarItems(
-                leading: Image("UANL-Logo").resizable().frame(width: 30, height: 30), // Mini icono superior
+                leading: Image("UANL-Logo").resizable().frame(width: 30, height: 30),
                 trailing: Menu {
                     Button("Configuración UI y Tema", action: { })
                     Button("Cerrar Sesión", role: .destructive, action: {
                         Task { try? await authService.signOut() }
                     })
                 } label: {
-                    Image(systemName: "line.3.horizontal") // Menú Hamburguesa pedido en GEMINI
+                    Image(systemName: "line.3.horizontal") // Menú Hamburguesa exigido
                         .imageScale(.large)
                         .foregroundColor(.miCuPrimary)
                 }
             )
             .onAppear {
                 Task {
-                    // Descargamos para mostrar lo del mes/día
-                    await viewModel.fetchCarteleraEventos()
+                    // Descargamos una vez el catálogo principal para que todo co-exista reactivamente
+                    await eventViewModel.fetchCarteleraEventos()
                 }
             }
         }
     }
-    
-    func currentMonthYear() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        formatter.locale = Locale(identifier: "es_MX") // Forzamos a Español México
-        return formatter.string(from: Date()).capitalized
-    }
 }
-
-// Subvista: Cajita del Día seleccionable
-struct DayBubble: View {
-    let date: Date
-    let isSelected: Bool
-    
-    var body: some View {
-        VStack {
-            Text(shortDayName())
-                .font(.caption2)
-                .foregroundColor(isSelected ? .white : .gray)
-            Text(dayNumber())
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(isSelected ? .white : .primary)
-        }
-        .frame(width: 48, height: 60)
-        .background(isSelected ? Color.miCuPrimary : Color.clear)
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.gray.opacity(0.3), lineWidth: isSelected ? 0 : 1)
-        )
-    }
-    
-    func shortDayName() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        formatter.locale = Locale(identifier: "es_MX")
-        return formatter.string(from: date).capitalized
-    }
-    
-    func dayNumber() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d"
-        return formatter.string(from: date)
-    }
-}
+#endif

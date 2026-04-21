@@ -36,7 +36,7 @@ struct Evento: Codable, Identifiable {
     }
 }
 
-enum CategoriaAFI: String, Codable {
+enum CategoriaAFI: String, Codable, CaseIterable, Sendable {
     case investigacion = "Investigación"
     case culturales = "Culturales"
     case institucional = "Institucional"

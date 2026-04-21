@@ -1,6 +1,8 @@
 import Foundation
 import Supabase
-
+#if canImport(Combine)
+import Combine
+#endif
 @MainActor
 class HerramientasViewModel: ObservableObject {
     @Published var notas: [RecordatorioPersonal] = []
@@ -9,6 +11,8 @@ class HerramientasViewModel: ObservableObject {
     
     // UUID / Matrícula desde el Auth global para evitar que vea los de otros alumnos
     var matriculaAlumno: Double? = nil 
+    
+    init() {}
     
     func fetchHerramientas() async {
         guard let matricula = matriculaAlumno else { return }
@@ -56,10 +60,46 @@ class HerramientasViewModel: ObservableObject {
         let doc = NuevaNota(usuario_id: matricula, titulo: titulo, nota: descripcion, prioridad: prioridad)
         
         do {
-            try await supabase.from("Recordatorios_Personales").insert(doc).execute()
+            _ = try await supabase.from("Recordatorios_Personales").insert(doc).execute()
             await fetchHerramientas() // Refresca lista silenciosamente despues de crear
         } catch {
             print("No se pudo agregar nota: \(error)")
+        }
+    }
+    
+    // Función de exportación para la UI y la Prueba Parametrizada de Swift Testing
+    func procesarHoraParaDB(horaNative: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.string(from: horaNative)
+    }
+    
+    /// Crea y guarda una Alarma personal en Supabase
+    func crearAlarma(titulo: String, hora: Date) async {
+        guard let matricula = matriculaAlumno else { return }
+        
+        let horaFormat = procesarHoraParaDB(horaNative: hora)
+        
+        struct NuevaAlarma: Codable {
+            let usuario_id: Double
+            let titulo: String
+            let hora: String
+            let activa: Bool
+        }
+        
+        let doc = NuevaAlarma(
+            usuario_id: matricula,
+            titulo: titulo.isEmpty ? "Alarma" : titulo,
+            hora: horaFormat,
+            activa: true
+        )
+        
+        do {
+            _ = try await supabase.from("Alarmas").insert(doc).execute()
+            await fetchHerramientas() // Actualiza inmediatamente la pantalla
+        } catch {
+            print("Error al agregar alarma: \(error.localizedDescription)")
         }
     }
 }

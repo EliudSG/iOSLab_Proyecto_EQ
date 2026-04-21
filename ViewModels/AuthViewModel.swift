@@ -1,6 +1,8 @@
 import Foundation
 import Supabase
-
+#if canImport(Combine)
+import Combine
+#endif
 @MainActor
 class AuthViewModel: ObservableObject {
     @Published var email = ""
@@ -9,6 +11,8 @@ class AuthViewModel: ObservableObject {
     
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
+    
+    init() {}
     
     /// Valida que el estudiante haya llenado su matrícula/correo y pase
     private var isFormValid: Bool {

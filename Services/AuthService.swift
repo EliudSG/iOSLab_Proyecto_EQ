@@ -1,6 +1,8 @@
 import Foundation
 import Supabase
-
+#if canImport(Combine)
+import Combine
+#endif
 @MainActor
 final class AuthService: ObservableObject {
     /// Singleton para poder accederlo de forma global o inyectarlo en el Environment de SwiftUI
@@ -27,7 +29,7 @@ final class AuthService: ObservableObject {
     
     /// Inicia sesión usando correo y contraseña.
     func signIn(email: String, password: String) async throws {
-        try await supabase.auth.signInWithPassword(email: email, password: password)
+        try await supabase.auth.signIn(email: email, password: password)
     }
     
     /// Cierra la sesión activa borrando el JWT.

@@ -1,9 +1,11 @@
 import SwiftUI
 
+#if canImport(SwiftUI)
 struct HerramientasView: View {
     @StateObject private var viewModel = HerramientasViewModel()
     @State private var seleccion = 0 // 0 = Notas, 1 = Alarmas
     @State private var mostrarModalNota = false
+    @State private var mostrarModalAlarma = false
     
     var body: some View {
         NavigationView {
@@ -49,16 +51,22 @@ struct HerramientasView: View {
             }
             .navigationTitle("Zona Personal")
             .navigationBarItems(trailing: Button(action: {
-                if seleccion == 0 { mostrarModalNota = true }
-                // TODO: Abrir modal de alarma para selección = 1
+                if seleccion == 0 { 
+                    mostrarModalNota = true 
+                } else {
+                    mostrarModalAlarma = true
+                }
             }) {
                 Image(systemName: "plus.circle.fill")
                     .font(.title2)
                     .foregroundColor(.miCuPrimary)
             })
-            // Enlazar Modal tipo Sheet (Sale desde abajo)
+            // Modales inyectados
             .sheet(isPresented: $mostrarModalNota) {
                 NuevaNotaModal(viewModel: viewModel)
+            }
+            .sheet(isPresented: $mostrarModalAlarma) {
+                NuevaAlarmaModal(viewModel: viewModel)
             }
             .onAppear {
                 viewModel.matriculaAlumno = 1234567 // Mock User ID
@@ -150,3 +158,40 @@ struct NuevaNotaModal: View {
         }
     }
 }
+
+// Componente: Modal Crear Alarma (Nuevo)
+struct NuevaAlarmaModal: View {
+    @ObservedObject var viewModel: HerramientasViewModel
+    @Environment(\.presentationMode) var presentationMode
+    
+    @State private var aTitulo = ""
+    @State private var aHora = Date()
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Configurar Alerta")) {
+                    TextField("Título (Ej. Despertar para el AFI)", text: $aTitulo)
+                    
+                    DatePicker("Hora deseada", selection: $aHora, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(WheelDatePickerStyle()) // Rotador de Apple clásico
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+            }
+            .navigationTitle("Nueva Alarma")
+            .navigationBarItems(
+                leading: Button("Cancelar") { 
+                    presentationMode.wrappedValue.dismiss() 
+                }.foregroundColor(.red),
+                trailing: Button("Terminar") {
+                    Task {
+                        await viewModel.crearAlarma(titulo: aTitulo, hora: aHora)
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            )
+        }
+    }
+}
+#endif

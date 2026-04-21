@@ -32,6 +32,14 @@ struct MainTabView: View {
                     Image(systemName: "hammer.fill")
                     Text("Herramientas")
                 }
+                
+            // Tab 5: (SOLO ORGANIZADORES) Crear Evento
+            // TODO: Envolver en un `if authService.perfilLocal?.role == .organizer` cuando la vinculación UI/BD esté finalizada
+            CrearEventoView()
+                .tabItem {
+                    Image(systemName: "plus.app.fill")
+                    Text("Crear AFI")
+                }
         }
         // Este comando tiñe el Tab seleccionado con el color de la UANL
         .accentColor(.miCuPrimary) 
