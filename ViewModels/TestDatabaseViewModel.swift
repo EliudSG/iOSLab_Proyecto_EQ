@@ -1,10 +1,14 @@
 import Foundation
-
+#if canImport(Combine)
+import Combine
+#endif
 @MainActor
 class TestDatabaseViewModel: ObservableObject {
     @Published var eventos: [Evento] = []
     @Published var errorMessage: String? = nil
     @Published var isLoading: Bool = false
+    
+    init() {}
     
     /// Esta función intentará conectarse a Supabase y descargar todos los eventos al modelo Swift
     func fetchEventos() async {

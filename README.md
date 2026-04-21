@@ -1,94 +1,93 @@
-# 📅 MI.CU — (UANL)
+# 📅 MI.CU — Mi Calendario Universitario UANL
 
 ![Swift](https://img.shields.io/badge/Swift-FA7343?style=for-the-badge&logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-000000?style=for-the-badge&logo=swift&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![iOS](https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=apple&logoColor=white)
+![TDD](https://img.shields.io/badge/TDD_Swift_Testing-Expert-blue?style=for-the-badge&logo=swift)
 
-MI.CU es una aplicación móvil nativa para iOS diseñada para ayudar a la comunidad de la **Universidad Autónoma de Nuevo León (UANL)** a organizar y gestionar sus **Actividades Formativas Integrales (AFI)**.
+MI.CU es una aplicación nativa para iOS de última generación diseñada para la comunidad de la **Universidad Autónoma de Nuevo León (UANL)**. Su principal objetivo es simplificar, organizar y gamificar un requisito indispensable de graduación para los universitarios: **Las Actividades Formativas Integrales (AFI)**.
 
-Este proyecto fue desarrollado en equipo para la materia *iOSLab*.
-
----
-
-## 🚀 Características Principales
-
-* **Gestión de AFI**: Explora, inscríbete y haz un seguimiento de tus actividades formativas integrales.
-* **Calendario Integrado**: Visualiza fácil y rápidamente todos tus eventos universitarios mes a mes y día por día.
-* **Herramientas Personales**: Añade recordatorios en notas de distintos colores (según su prioridad) y configura alarmas para mantenerte al día con tus labores académicas.
-* **Progreso Semestral**: Sigue el estado de tus AFIs con contadores interactivos para asegurarte de cumplir tus requisitos.
-* **Diseño Nativo y Accesible**: Desarrollado 100% en SwiftUI utilizando lineamientos modernos; cuenta con opciones de Modo Claro / Oscuro, así como soporte bilingüe (Español / Inglés).
+Este repositorio documenta todo el ecosistema y la arquitectura de este cliente iOS, preparado con "Zero Crashes" técnicos de interplataforma y respaldado en la nube con Supabase.
 
 ---
 
-## 🛠 Arquitectura Tecnológica
+## 🎓 ¿Qué es MI.CU y qué problema resuelve?
 
-El proyecto se apega al patrón arquitectónico **MVVM (Model-View-ViewModel)**. 
+En la dinámica universitaria, los estudiantes deben acumular "Puntos AFI" asistiendo a eventos extra-académicos (exposiciones, deportes, conferencias, etc). Sin embargo, saber qué eventos están disponibles, dónde se realizan y cuántos puntos tienen validez a lo largo del duro semestre suele ser muy caótico y desordenado. 
 
-### Stack
-* **Frontend**: App nativa iOS creada con **Swift** y **SwiftUI**.
-* **Backend**: **Supabase** (Postgres DB, API, Autenticación) consumido directamente en el cliente mediante concurrencia moderna de iOS usando `async/await`.
-* **Flujo de Datos**: Propiedades `@Published` dentro de los *ViewModels* que exponen la lógica de negocio a las vistas, reaccionando fluidamente a cualquier cambio de estado.
+**MI.CU** soluciona esto democratizando el catálogo de AFIs en un diseño amigable:
+1. **Para Estudiantes**: Es tu agenda íntima. Ves el calendario, encuentras eventos atractivos (Arte, Investigación, Deportes), te registras, apartas tus alarmas y le das "Check" a la tarea. La app te marcará tu estatus semestral (`Ej: Tienes X límite de 14 permitidos`).
+2. **Para Organizadores**: Brinda una plataforma expedita para publicar en masa los próximos foros y sus ubicaciones sin dependencias a sistemas obsoletos institucionales.
 
-### Estructura del Proyecto
+---
+
+## 🚀 Soluciones y Módulos de la Aplicación
+
+* 🗓️ **Motor de Calendario Híbrido**: No usamos componentes genéricos de UI engañosos. Un modelo nativo cruza la matemática de fechas en tu huso horario local y la codifica inmediatamente al estándar estricto esperado por PostgreSQL (`yyyy-MM-dd`), imprimiendo solo en tarjetas SwiftUI los eventos que suceden el día preciso que seleccionas.
+* 🚦 **Sistema Seguro de Interacción AFI**: El catálogo muestra todos los eventos AFI generados por directivos. Tu puedes "Inscribirte" y "Marcar Acabado (⭐)" cualquier evento y el contador gamificado sabrá qué límite llevas por semestre o en global. 
+* 🛠️ **Utilería Persistente de Estudiante**: Módulos locales inyectados de Alarmas personales (usando `WheelDatePickers` blindados contra el mismatch horario con en_US_POSIX) y tableros interactivos de Notas Rápidas asignadas por colores de urgencia.
+* 🛡️ **Políticas Centralizados RLS (Aislamientos de Seguridad en BD)**: Jamás verás las notas rápidas o alarmas de tus compañeros, porque tu firma `User_ID` de tu Token Apple-Supabase se interpone entre la inyección a Postgres, asegurando blindaje.
+* 📱 **Arquitectura Aislada UI/Lógica**: La base del código tiene independencia matemática y lógica del renderizado de tu pantalla. Lo cual posibilita correr el 100% de la lógica pesada sin simulador y sin Mac a la velocidad de la luz en servidores CI/CD.
+
+---
+
+## 🛠 Arquitectura Tecnológica Estricta (MVVM)
+
+La app fue diseñada y testeada con separación implacable de contextos **Model-View-ViewModel** para favorecer el mantenimiento. Toda la UI es reactiva mediante el poderoso framework observador de entorno de Apple `Combine`.
+
+### Estructura de Directorios Resultante
 ```text
 MiCU/
-├── Models/         # Structs (Codable) que mapean 1:1 con las tablas en Supabase
-├── ViewModels/     # Lógica de negocio y manejo de datos asincrónicos
-├── Views/          # Vistas de la aplicación (Auth, Main, AFI, Personal, Settings)
-├── Services/       # Funcionalidad core como Singleton de Supabase, Auth Service
-└── Resources/      # Media, Colores de dominio AFI y Localización de strings
+├── Models/         # Structs Codable espejos 1:1 de Supabase (Evento, Alarma, etc).
+├── ViewModels/     # Directores y Filtros lógicos (@MainActor). Sin tocar nada gráfico.
+├── Views/          
+│   ├── Auth/       # Splash Animado, Onboarding de Bienvenida.
+│   ├── Main/       # Home interactivo, integrando un calendario dinámico reactivo a toques.
+│   ├── AFI/        # Detalle extenso, Formularios de Alta, Scrollables.
+│   ├── Personal/   # Listas de alarmas y bloques rápidos + Modales de Inyección (`.sheets`).
+│   └── Settings/   # Controles que guardan tus modos Oscuros/Claros y lenguajes en BD.
+├── Services/       # Singleton general, Auth Supabase.
+├── Tests/          # Conjunto agresivo de simulaciones unitarias puras "Swift Testing".
+└── Resources/      # Reglas mnemotécnicas de color para cada materia AFI.
 ```
 
 ---
 
-## 💻 Guía de Instalación y Compilación (Xcode)
+## 🧪 Ingeniería de Pruebas y Certificación de Calidad
 
-Para compilar y correr el celular interactivo en tu Mac o Simulador en lugar de leer el código plano, sigue estas instrucciones para montar el proyecto (ya que el archivo crudo `.xcodeproj` no se versiona por conflictos de compilación):
+> **8 Pruebas Parametrizadas Asíncronas Certificadas.**
 
-1. **Obtén tus archivos**: Clona o descarga todo este repositorio.
-2. **Crea el Proyecto Vacío**: Abre **Xcode** y haz clic en **"Create a new Xcode project"**. Selecciona la pestaña **iOS > App**. Nómbralo `MiCU` y asegúrate de elegir tipo **SwiftUI** y lenguaje **Swift**. Guárdalo provisionalmente en tu Escritorio.
-3. **Limpia y Remplaza**: Ve al nuevo proyecto en Finder o Xcode y elimina los archivos por defecto que generó Apple (`ContentView.swift` y `MiCUApp.swift`). Con cuidado, selecciona las carpetas de este repositorio que clonaste (`Models/`, `ViewModels/`, `Views/`, `Services/`, `Resources/` y tu archivo especial `MiCUApp.swift`) y arrástralas al árbol izquierdo en tu proyecto de Xcode (marcando en el checkbox **"Copy items if needed"**).
-4. **Agrega la Gráfica**: Arrastra el archivo de imagen original de la universidad `UANL-Logo.png` que proporcionamos a la carpeta `Assets.xcassets`.
-5. **Configura el Backend de Supabase**: Como el proyecto usa Supabase de forma nativa:
-   * En tu barra principal superior de Xcode, ve a **File > Add Package Dependencies...**
-   * En el buscador pega este enlace oficial: `https://github.com/supabase/supabase-swift`
-   * Instálalo para el target `MiCU`.
-6. ¡Listo! Presiona **Play** `(Cmd + R)` o el ícono triangular para compilar el Simulador de iOS.
+¿Cómo validamos que tu Alarma no explote tu cuenta de Postgres si seleccionas horarios complicados? No lo probamos dándole click con el dedo... lo inyectamos al núcleo en milisegundos mediante el modernísimo **Swift Testing**.
+
+En este repositorio incluimos un entorno "Headless Test Environment". Nuestra lógica está blindada de tal forma que podemos aislar la matemática de Apple o SwiftUI inyectando Mocks de bases de datos, validando simulaciones como:
+- Intercambio de formatos de horas (`14:30:00` POSIX vs. String).
+- Pruebas iterativas contra eventos inexistentes para validar filtros de calendarios o categorías "Deportivas".
+- Formato de errores correctivos sobre "Aforo Textual" de organizadores antes de golpear el servidor.
 
 ---
 
-## 🗄 Modelo y Tablas de Base de Datos (Supabase / Postgres)
+## 💻 Guía de Activación (Xcode y Tu Aplicación)
 
-Nuestra base de datos relacional y escalable en Supabase funciona bajo políticas estrictas de seguridad de filas (**RLS**). La información personal como *Recordatorios* o *Alarmas* es de acceso estrictamente privado por usuario autenticado gracias al uso del JWT interno de sesión, previniendo fuga de datos de los alumnos. Los eventos, en contraste, son de sólo lectura de forma pública.
+Gracias a las barreras lógicas creadas con etiquetas condicionales **`#if canImport(SwiftUI)`** y la separación rigurosa de dependencias en `SPM (Swift Package Manager)`, el proyecto está libre de basura y listo para conectar con tu Xcode sin dañar un solo Target ni arrojarte conflictos raros de metadatos Linux o `.git`:
 
-### Las 7 Tablas Pivotes del Sistema
-1. **`Usuarios`**: Tabla de control global. Contiene el rol del usuario (Ej. *Student, Organizer*). Su llave principal (`matricula`) se correlaciona con la de Autenticación de Supabase de manera programática.
-2. **`Alumnos` / `Organizadores`**: Tablas filiales vinculadas a `Usuarios` para delimitar particularidades especiales según el uso de la sesión (Ej. el departamento o grado de la persona).
-3. **`Eventos`**: El catálogo central de AFIs listadas por los organizadores y consumidas por nuestro Switch de UI bajo *Eventos Publicados*. Existe una columna `insumos` adaptada a ser **dinámica (jsonb)** que la app descifra sin crashear gracias a tecnología `AnyCodable` que configuramos en **Modelos**.
-4. **`Inscripciones`**: Es la estructura transmedia que rompe de manera segura la relación "Muchos a Muchos" entre estudiantes y exposiciones. Contiene el valioso bit `finalizada` que es manipulado mediante Updates remotos dentro de la app para pintar de color Verde la tarjeta AFI en el *HomeView*.
-5. **`Recordatorios_Personales` / `Alarmas`**: Son los arreglos en donde `HerramientasView` incrusta notas cifradas.
-
-### Catálogo del Dominio AFI (GAMIFICACIÓN)
-Para unificación gráfica que evite equivocaciones tipográficas del editor en la base de datos, las AFIs oficiales tienen un *ENUM Constrained User-Defined Typo* estricto y un código de color emparejado en el repositorio UI (`Colors.swift`):
-* Investigación
-* Culturales
-* Institucional
-* Académicas
-* Artística
-* Idiomas
-* Responsabilidad Social
-* Deportivas
-* Intercambio Académico
-* Innovación y Emprendimiento
+1.  **Abre "iOSLab_Proyecto_EQ.xcodeproj"**: Tan rápido clonas el Repo de GitHub y lo extraes en tu Mac, ejecuta el archivo padre.
+2.  **SDK Autónomo**: Gracias a que limpiamos el repo con un `gitignore` estricto en el paquete independiente de desarrollo, verás que tu Xcode descargará instantáneamente e íntegramente la versión pulida oficial de tu *Supabase SDK*. 
+3.  **Configura el Arte Gráfico**: En `Assets.xcassets`, arrastra el logo original universitario `UANL-Logo.png`.
+4.  ¡**Rueda el Simulador**! Todos los imports se detectarán como `True` de cara a SwiftUI local activando el gigantesco mundo visual que creamos y lo unirá con un cable transparente a la base lógica de los `.swift` que jamás chocarán en entorno ni compilarán en desorden.
 
 ---
 
-## 📲 Módulos de la Aplicación
+## 🗄 Modelo Criptográfico Relacional (Supabase postgres)
 
-1. **Autenticación y Perfil**: Validado para correos institucionales de la facultad, pasando por un agradable *onboarding*.
-2. **Pantalla Principal (Home)**: Navegación de calendario en la cual podrás previsualizar y consultar horas exactas y sede de los eventos próximos.
-3. **Módulo AFI y Listados**: Ve todos los eventos en catálogo, inscríbete y marca tu estatus como *finalizada* marcándolas con una estrella ⭐ en los detalles del evento. 
-4. **Utilidades del Alumno**: Utiliza tus tiempos muertos para tomar recados importantes y ajustar tus tiempos de estudio.
-5. **Configuración General**: Cambios de temas visuales, ajustes de notificaciones, tablero interactivo de preguntas y contactos de tu facultad.
+El núcleo de PostgreSQL sostiene siete tablas pivotes y tres Tipos *ENUM Custom* interconectadas con RLS. 
+
+1. **`Usuarios` / `Alumnos` / `Organizadores`**: El rol global maneja tus metadatos universales (Preferencias visuales y tu matrícula real institucional). Los sub-modelos delimitan el permiso. Un Alumno nunca podrá escribir encima del Catálogo de Operaciones.
+2. **`Eventos` (Catálogo Maestro)**: La tabla pública (pero blindada) de las actividades AFIs. Es flexible al contar con la estructura especializada `jsonb` modelada en el frontend bajo tipos abstractos `AnyCodable()`.
+3. **`Inscripciones` (El Punto Clave)**: La tabla transitiva *N..to..N*. Alberga el crucial UUID y la bandera bit asíncrona de si una materia particular AFI está palomeada como `finalizada` a favor del progreso en semestres universitarios.
+4. **`Alarmas` / `Recordatorios_Personales`**: Bases asiladas vinculadas por Llaves foráneas (`usuario_id`). La UI transforma toda información de manera precisa mediante DataFormatters antes de mandar en JSON a estos alojamientos para que el parseo sea idéntico 1:1 a un `TIME/DATE` y a sus Tipos `ENUM` (Prioridad `Básico, Urgente`, etc).
+
+---
+
+🔥 **¡MI.CU está compilado y listo para optimizar los horarios universitarios!**

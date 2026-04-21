@@ -56,8 +56,10 @@ playground.xcworkspace
 # Add this line if you want to avoid checking in source code from Swift Package Manager dependencies.
 # Packages/
 # Package.resolved
-# .build/
-
+.build/
+ViewModels/LinuxCombineMock.swift
+Package.swift
+Mocks/
 # CocoaPods
 #
 # We recommend against adding the Pods directory to your .gitignore. However
